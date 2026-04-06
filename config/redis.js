@@ -2,11 +2,11 @@ const redis = require('redis');
 
 // Configuration du client Redis
 const redisClient = redis.createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:3007',
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
     socket: {
         reconnectStrategy: (retries) => {
             if (retries > 3) {
-                console.log("ℹ️ Serveur Cache Redis non détecté. Bustantech Store fonctionne parfaitement en mode requêtes directes via PostgreSQL.");
+                console.log("ℹ️ Serveur Cache Redis non détecté. BoustaneTech Store fonctionne parfaitement en mode requêtes directes via PostgreSQL.");
                 return new Error("Redis connection failed");
             }
             return 1000; // Réessayer après 1s

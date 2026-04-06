@@ -1,0 +1,26 @@
+[
+  {
+    "constraint_name": "order_items_order_id_fkey",
+    "table_name": "order_items",
+    "column_name": "order_id",
+    "foreign_table_name": "orders",
+    "foreign_column_name": "id",
+    "delete_rule": "CASCADE"
+  },
+  {
+    "constraint_name": "order_items_product_id_fkey",
+    "table_name": "order_items",
+    "column_name": "product_id",
+    "foreign_table_name": "products",
+    "foreign_column_name": "id",
+    "delete_rule": "SET NULL"
+  },
+  {
+    "constraint_name": "order_items_variant_id_fkey",
+    "table_name": "order_items",
+    "column_name": "variant_id",
+    "foreign_table_name": "product_variants",
+    "foreign_column_name": "id",
+    "delete_rule": "SET NULL"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "column_name": "id",
+    "is_nullable": "NO",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "order_id",
+    "is_nullable": "YES",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "product_id",
+    "is_nullable": "YES",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "quantity",
+    "is_nullable": "YES",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "unit_price",
+    "is_nullable": "YES",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "variant_id",
+    "is_nullable": "YES",
+    "data_type": "integer"
+  }
+]

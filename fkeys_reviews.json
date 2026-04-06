@@ -1,0 +1,7 @@
+[
+  {
+    "constraint_name": "product_reviews_product_id_fkey",
+    "table_name": "product_reviews",
+    "delete_rule": "CASCADE"
+  }
+]

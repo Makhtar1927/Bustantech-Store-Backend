@@ -189,7 +189,7 @@ exports.getProductById = async (req, res) => {
     }
 };
 
-// --- 3. AJOUTER UN PRODUIT (Réservé à l'Admin Bustantech) ---
+// --- 3. AJOUTER UN PRODUIT (Réservé à l'Admin BoustaneTech) ---
 exports.createProduct = async (req, res) => {
     const { name, description, brand, base_price, category_id, variants, is_on_sale, compare_at_price } = req.body;
     const imageUrl = req.file ? req.file.path : null; // L'URL Cloudinary de l'image

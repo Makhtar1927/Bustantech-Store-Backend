@@ -1,0 +1,7 @@
+[
+  {
+    "constraint_name": "product_variants_product_id_fkey",
+    "table_name": "product_variants",
+    "delete_rule": "CASCADE"
+  }
+]

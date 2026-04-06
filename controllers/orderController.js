@@ -9,9 +9,11 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ error: "Le panier est vide ou invalide." });
     }
 
+    let client;
     try {
+        client = await db.getClient();
         // DÉBUT DE LA TRANSACTION
-        await db.query('BEGIN');
+        await client.query('BEGIN');
 
         // Étape 1 : Calculer le total sécurisé depuis la base de données (Prévention Fraude)
         let secureTotalAmount = 0;
@@ -32,7 +34,7 @@ exports.createOrder = async (req, res) => {
             }
             if (item.quantity <= 0) throw new Error("La quantité d'un article est invalide.");
 
-            const prodRes = await db.query('SELECT base_price, name FROM products WHERE id = $1', [productId]);
+            const prodRes = await client.query('SELECT base_price, name FROM products WHERE id = $1', [productId]);
             if (prodRes.rows.length === 0) throw new Error(`Le produit n'existe plus dans le catalogue.`);
             
             let unitPrice = parseFloat(prodRes.rows[0].base_price);
@@ -40,7 +42,7 @@ exports.createOrder = async (req, res) => {
             if (item.variant_id) {
                 const variantId = parseInt(item.variant_id);
                 if (!isNaN(variantId)) {
-                    const varRes = await db.query('SELECT price_modifier, stock_quantity FROM product_variants WHERE id = $1 AND product_id = $2', [variantId, productId]);
+                    const varRes = await client.query('SELECT price_modifier, stock_quantity FROM product_variants WHERE id = $1 AND product_id = $2', [variantId, productId]);
                     if (varRes.rows.length > 0) {
                         // Vérification stricte anti sur-vente
                         if (varRes.rows[0].stock_quantity < item.quantity) {
@@ -71,7 +73,7 @@ exports.createOrder = async (req, res) => {
         secureTotalAmount = finalSubtotal + shippingCost;
 
         // Étape 2 : Insérer la commande générale
-        const orderResult = await db.query(
+        const orderResult = await client.query(
             `INSERT INTO orders (customer_name, customer_phone, customer_address, total_amount, payment_method) 
              VALUES ($1, $2, $3, $4, $5) RETURNING id`,
             [customer_name, customer_phone, customer_address, secureTotalAmount, payment_method]
@@ -82,7 +84,7 @@ exports.createOrder = async (req, res) => {
         // Étape 3 : Boucler sur les articles sécurisés du panier et les insérer un par un
         for (let item of secureItems) {
             // Note : si le produit n'a pas de variante, item.variant_id sera null.
-            await db.query(
+            await client.query(
                 `INSERT INTO order_items (order_id, product_id, variant_id, quantity, unit_price) 
                  VALUES ($1, $2, $3, $4, $5)`,
                 [newOrderId, item.id, item.variant_id || null, item.quantity, item.secure_price]
@@ -90,7 +92,7 @@ exports.createOrder = async (req, res) => {
             
             // Déduction automatique du stock et alerte
             if (item.variant_id) {
-                const stockRes = await db.query(
+                const stockRes = await client.query(
                     `UPDATE product_variants SET stock_quantity = GREATEST(stock_quantity - $1, 0) WHERE id = $2 RETURNING stock_quantity, attribute_value`,
                     [item.quantity, item.variant_id]
                 );
@@ -104,7 +106,7 @@ exports.createOrder = async (req, res) => {
         }
 
         // TOUT S'EST BIEN PASSÉ : ON VALIDE LA TRANSACTION
-        await db.query('COMMIT');
+        await client.query('COMMIT');
 
         // Notification temps réel à l'Admin pour la nouvelle commande
         req.app.get('notificationEmitter')?.emit('push', {
@@ -119,10 +121,12 @@ exports.createOrder = async (req, res) => {
 
     } catch (err) {
         // EN CAS D'ERREUR : ON ANNULE TOUT POUR GARDER LA BASE PROPRE
-        await db.query('ROLLBACK');
+        if (client) await client.query('ROLLBACK');
         console.error("Erreur lors de la création de la commande :", err);
         // Renvoie l'erreur spécifique (ex: produit de démo) pour informer clairement le client
         res.status(500).json({ error: err.message || "Impossible d'enregistrer la commande." });
+    } finally {
+        if (client) client.release();
     }
 };
 

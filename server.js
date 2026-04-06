@@ -3,6 +3,20 @@ const cors = require('cors');
 const helmet = require('helmet'); // Sécurité contre les attaques HTTP
 const morgan = require('morgan'); // Affiche les requêtes dans la console (pratique pour débugger)
 require('dotenv').config();
+
+// --- DIAGNOSTIC DES VARIABLES D'ENVIRONNEMENT ---
+const checkEnv = () => {
+    const required = ['DATABASE_URL', 'JWT_SECRET', 'CLOUDINARY_URL', 'EMAIL_USER', 'EMAIL_PASS'];
+    const missing = required.filter(key => !process.env[key]);
+    if (missing.length > 0) {
+        console.warn(`\n⚠️  ATTENTION : Variables d'environnement manquantes : ${missing.join(', ')}`);
+        console.warn(`Vérifiez votre fichier .env pour que le serveur fonctionne correctement.\n`);
+    }
+    if (process.env.JWT_SECRET === 'votre_secret_tres_long_et_aleatoire') {
+        console.error(`\n🚨 DANGER : Vous utilisez le JWT_SECRET par défaut. CHANGEZ-LE IMMÉDIATEMENT EN PRODUCTION.\n`);
+    }
+};
+checkEnv();
 const fs = require('fs'); // Pour écrire dans un fichier
 const path = require('path'); // Pour gérer les chemins de fichiers
 const bcrypt = require('bcrypt'); // Pour crypter le mot de passe de l'admin par défaut
@@ -16,6 +30,7 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const authMiddleware = require('./middleware/authMiddleware'); // Importation de la sécurité
 const checkRole = require('./middleware/roleMiddleware'); // Gestion des rôles
 
@@ -30,7 +45,18 @@ const notificationEmitter = new EventEmitter();
 app.set('notificationEmitter', notificationEmitter); // Le rend accessible partout via req.app.get()
 
 // --- 1. MIDDLEWARES DE BASE ---
-app.use(cors());   // Le CORS DOIT toujours être appelé en premier pour ne pas être bloqué
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173'];
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+            callback(null, true);
+        } else {
+            callback(new Error('Bloqué par la politique CORS de BoustaneTech Store'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(helmet({ crossOriginResourcePolicy: false })); // Protège votre site des failles XSS
 app.use(express.json()); // Permet de lire les données JSON envoyées (ex: prix, nom d'iPhone)
 app.use(morgan('dev'));  // Affiche "GET /api/products 200" dans votre terminal
@@ -38,10 +64,19 @@ app.use(morgan('dev'));  // Affiche "GET /api/products 200" dans votre terminal
 // --- 1.5 SÉCURITÉ : LIMITATION DE DÉBIT (Rate Limiting) ---
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10000, // Augmenté pour éviter les blocages pendant le dev
+    max: 1000, // Diminué pour la production (1000 requêtes / 15 min par IP)
     message: { error: "Trop de requêtes." }
 });
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10, // Max 10 tentatives de login/reset par 15 min
+    message: { error: "Trop de tentatives de connexion. Réessayez plus tard." }
+});
+
 app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // --- 2.5 NOTIFICATIONS TEMPS RÉEL (SSE) ---
 app.get('/api/notifications/stream', authMiddleware, (req, res) => {
@@ -63,7 +98,7 @@ app.get('/api/notifications/stream', authMiddleware, (req, res) => {
 
 // Route racine (Health check / Message de bienvenue)
 app.get('/', (req, res) => {
-    res.status(200).send("🚀 Bienvenue sur l'API Bustantech Store. Le serveur fonctionne parfaitement !");
+    res.status(200).send("🚀 Bienvenue sur l'API BoustaneTech Store. Le serveur fonctionne parfaitement !");
 });
 
 // Authentification (Login Admin)
@@ -78,6 +113,9 @@ app.use('/api/stock', stockRoutes);
 
 // Commandes des clients
 app.use('/api/orders', orderRoutes);
+
+// Réglages
+app.use('/api/settings', settingsRoutes);
 
 // --- NEWSLETTER ---
 app.post('/api/newsletter', async (req, res) => {
@@ -117,7 +155,7 @@ app.get('/api/audit', authMiddleware, checkRole(['admin']), async (req, res) => 
 // --- 3. GESTION DES ERREURS (Le filet de sécurité) ---
 // Si une route n'existe pas
 app.use((req, res, next) => {
-    res.status(404).json({ message: "Désolé, cette route n'existe pas sur Bustantech API" });
+    res.status(404).json({ message: "Désolé, cette route n'existe pas sur BoustaneTech API" });
 });
 
 // Erreur globale du serveur
@@ -149,7 +187,7 @@ const seedAdmin = async () => {
             const hashedPassword = await bcrypt.hash(password, salt);
             await db.query(
                 'INSERT INTO admins (full_name, email, password_hash) VALUES ($1, $2, $3)',
-                ['Admin Bustantech', email, hashedPassword]
+                ['Admin BoustaneTech', email, hashedPassword]
             );
             console.log(`\n✅ Compte Administrateur créé avec succès : ${email}`);
         }
@@ -167,7 +205,7 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`
         🚀 ============================================
-        ✨ BUSTANTECH STORE - BACKEND ACTIF
+        ✨ BoustaneTech Store - BACKEND ACTIF
         📡 Port      : ${PORT}
         🟢 Statut    : Opérationnel
         🏛️ DB Status : Connectée via Pool PostgreSQL

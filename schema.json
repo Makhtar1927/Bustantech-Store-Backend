@@ -1,0 +1,52 @@
+[
+  {
+    "column_name": "id",
+    "is_nullable": "NO",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "category_id",
+    "is_nullable": "YES",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "name",
+    "is_nullable": "NO",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "description",
+    "is_nullable": "YES",
+    "data_type": "text"
+  },
+  {
+    "column_name": "brand",
+    "is_nullable": "YES",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "base_price",
+    "is_nullable": "NO",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "image_url",
+    "is_nullable": "YES",
+    "data_type": "text"
+  },
+  {
+    "column_name": "created_at",
+    "is_nullable": "YES",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "column_name": "is_on_sale",
+    "is_nullable": "YES",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "compare_at_price",
+    "is_nullable": "YES",
+    "data_type": "numeric"
+  }
+]

@@ -87,11 +87,11 @@ exports.forgotPassword = async (req, res) => {
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
         await transporter.sendMail({
-            from: `"Bustantech Store" <${process.env.EMAIL_USER}>`,
+            from: `"BoustaneTech Store" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Réinitialisation de votre mot de passe Admin',
             html: `
-                <h2>Bustantech Store - Sécurité</h2>
+                <h2>BoustaneTech Store - Sécurité</h2>
                 <p>Vous (ou quelqu'un d'autre) avez demandé la réinitialisation de votre mot de passe d'administration.</p>
                 <p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
                 <a href="${resetUrl}" style="display:inline-block; padding:10px 20px; background-color:#d4af37; color:white; text-decoration:none; font-weight:bold; margin-top:10px; border-radius:4px;">Réinitialiser mon mot de passe</a>

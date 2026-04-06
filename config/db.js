@@ -10,7 +10,7 @@ const pool = new Pool({
 
 // Test de la connexion au démarrage
 pool.on('connect', () => {
-  console.log('✅ Bustantech Store est connecté à la base de données PostgreSQL');
+  console.log('✅ BoustaneTech Store est connecté à la base de données PostgreSQL');
 });
 
 pool.on('error', (err) => {
@@ -20,4 +20,5 @@ pool.on('error', (err) => {
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
+  getClient: () => pool.connect()
 };
