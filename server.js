@@ -19,7 +19,7 @@ const checkEnv = () => {
 checkEnv();
 const fs = require('fs'); // Pour écrire dans un fichier
 const path = require('path'); // Pour gérer les chemins de fichiers
-const bcrypt = require('bcrypt'); // Pour crypter le mot de passe de l'admin par défaut
+const bcrypt = require('bcryptjs'); // Pour crypter le mot de passe de l'admin par défaut
 const rateLimit = require('express-rate-limit'); // Limitation de débit
 const EventEmitter = require('events'); // Pour les notifications temps réel
 
@@ -36,8 +36,8 @@ const checkRole = require('./middleware/roleMiddleware'); // Gestion des rôles
 
 const app = express();
 
-// --- NGINX REVERSE PROXY CONFIGURATION ---
-// Indispensable pour que 'express-rate-limit' lise la vraie adresse IP du client transmise par Nginx
+// --- NGINX / VERCEL REVERSE PROXY CONFIGURATION ---
+// Indispensable pour que 'express-rate-limit' lise la vraie adresse IP du client
 app.set('trust proxy', 1);
 
 // --- Configuration du canal de notifications temps réel (SSE) ---
@@ -45,10 +45,15 @@ const notificationEmitter = new EventEmitter();
 app.set('notificationEmitter', notificationEmitter); // Le rend accessible partout via req.app.get()
 
 // --- 1. MIDDLEWARES DE BASE ---
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173'];
+// On élargit les origines autorisées pour Vercel ou on utilise une variable d'environnement
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : ['http://localhost:3000', 'http://localhost:5173', 'https://vostre-boutique.vercel.app'];
+
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+        // En production on peut autoriser toutes les origines Vercel ou restreindre via ALLOWED_ORIGINS
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app') || process.env.NODE_ENV === 'development') {
             callback(null, true);
         } else {
             callback(new Error('Bloqué par la politique CORS de BoustaneTech Store'));
@@ -57,7 +62,10 @@ app.use(cors({
     credentials: true
 }));
 
-app.use(helmet({ crossOriginResourcePolicy: false })); // Protège votre site des failles XSS
+app.use(helmet({ 
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false // Utile si on veut éviter des blocages d'images d'autres sources
+}));
 app.use(express.json()); // Permet de lire les données JSON envoyées (ex: prix, nom d'iPhone)
 app.use(morgan('dev'));  // Affiche "GET /api/products 200" dans votre terminal
 
